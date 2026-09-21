@@ -131,7 +131,9 @@ export type KmsJwkPrivateFromKmsJwkPublic<Type extends KmsCreateKeyType> = Type 
       ? KmsJwkPrivateOkp & { crv: Type['crv'] }
       : Type extends KmsCreateKeyTypeEc
         ? KmsJwkPrivateEc & { crv: Type['crv'] }
-        : KmsJwkPrivate
+        : Type extends KmsCreateKeyTypeAkp
+          ? KmsJwkPrivateAkp & { alg: Type['alg'] }
+          : KmsJwkPrivate
 
 export type KmsJwkPublicFromKmsJwkPrivate<Jwk extends KmsJwkPrivate> = Jwk extends KmsJwkPrivateRsa
   ? KmsJwkPublicRsa
@@ -141,7 +143,9 @@ export type KmsJwkPublicFromKmsJwkPrivate<Jwk extends KmsJwkPrivate> = Jwk exten
       ? KmsJwkPublicOkp & { crv: Jwk['crv'] }
       : Jwk extends KmsJwkPrivateEc
         ? KmsJwkPublicEc & { crv: Jwk['crv'] }
-        : KmsJwkPublic
+        : Jwk extends KmsJwkPrivateAkp
+          ? KmsJwkPublicAkp & { alg: Jwk['alg'] }
+          : KmsJwkPublic
 
 export type KmsJwkPublicFromCreateType<Type extends KmsCreateKeyType> = Type extends KmsCreateKeyTypeRsa
   ? KmsJwkPublicRsa
@@ -151,4 +155,6 @@ export type KmsJwkPublicFromCreateType<Type extends KmsCreateKeyType> = Type ext
       ? KmsJwkPublicOkp & { crv: Type['crv'] }
       : Type extends KmsCreateKeyTypeEc
         ? KmsJwkPublicEc & { crv: Type['crv'] }
-        : KmsJwkPublic
+        : Type extends KmsCreateKeyTypeAkp
+          ? KmsJwkPublicAkp & { alg: Type['alg'] }
+          : KmsJwkPublic

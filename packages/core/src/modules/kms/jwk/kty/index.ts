@@ -38,3 +38,10 @@ export {
   zKmsJwkPublicRsa,
 } from './rsa/rsaJwk'
 export { rsaPublicJwkToPublicKey } from './rsa/rsaPublicKey'
+export {
+  type KmsJwkPrivateAkp,
+  type KmsJwkPublicAkp,
+  zKmsJwkPrivateAkp,
+  zKmsJwkPrivateToPublicAkp,
+  zKmsJwkPublicAkp,
+} from './akp/akpJwk'

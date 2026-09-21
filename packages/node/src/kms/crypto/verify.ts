@@ -50,6 +50,9 @@ export function performVerify(
 
       return timingSafeEqual(expectedHmac, signature)
     }
+    case 'AKP': {
+      return verify(nodeAlgorithm, data, nodeKey, signature)
+    }
     default:
       // @ts-expect-error
       throw new Kms.KeyManagementAlgorithmNotSupportedError(`kty '${key.kty}'`, 'node')

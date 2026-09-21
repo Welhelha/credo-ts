@@ -39,6 +39,9 @@ export function performSign(
         .update(data)
         .digest()
     }
+    case 'AKP': {
+      return sign(nodeAlgorithm, data, nodeKey)
+    }
     default:
       // @ts-expect-error
       throw new Kms.KeyManagementAlgorithmNotSupportedError(`kty '${key.kty}'`, 'node')
@@ -61,6 +64,9 @@ export const nodeSupportedJwaAlgorithm = [
   'ES512',
   'EdDSA',
   'Ed25519',
+  'ML-DSA-44',
+  'ML-DSA-65',
+  'ML-DSA-87',
 ] as const satisfies Kms.KnownJwaSignatureAlgorithm[]
 
 export function mapJwaSignatureAlgorithmToNode(algorithm: Kms.KnownJwaSignatureAlgorithm) {
@@ -85,6 +91,9 @@ export function mapJwaSignatureAlgorithmToNode(algorithm: Kms.KnownJwaSignatureA
     case 'EdDSA':
     case 'Ed25519':
       return undefined
+    case 'ML-DSA-44':
+    case 'ML-DSA-65':
+    case 'ML-DSA-87':
     default:
       throw new Kms.KeyManagementAlgorithmNotSupportedError(`JWA algorithm '${algorithm}'`, 'node')
   }

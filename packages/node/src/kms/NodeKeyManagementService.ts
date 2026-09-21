@@ -174,6 +174,12 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
           format: 'jwk',
           key: privateJwk,
         })
+      } else if (privateJwk.kty === 'AKP') {
+        // This validates the JWK
+        createPrivateKey({
+          format: 'jwk',
+          key: privateJwk,
+        })
       } else {
         // All kty values supported for now, but can change in the future
         // @ts-expect-error

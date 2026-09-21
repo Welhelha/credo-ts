@@ -108,3 +108,32 @@ export async function createOctKey(options: Kms.KmsCreateKeyTypeOct & { algorith
     publicJwk: publicJwk as Kms.KmsJwkPublicOct,
   }
 }
+
+const nodeSupportedAkpAlgorithms = ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'] satisfies Kms.KmsCreateKeyTypeAkp['alg'][]
+type NodeSupportedAkpAlgorithms = (typeof nodeSupportedAkpAlgorithms)[number]
+export function assertNodeSupportedAkpAlgorithm(
+  options: Kms.KmsCreateKeyTypeAkp
+): asserts options is Kms.KmsCreateKeyTypeAkp & { alg: NodeSupportedAkpAlgorithms } {
+  if (!nodeSupportedAkpAlgorithms.includes(options.alg as NodeSupportedAkpAlgorithms)) {
+    throw new Kms.KeyManagementAlgorithmNotSupportedError(`alg '${options.alg}' for kty '${options.kty}'`, 'node')
+  }
+}
+
+export async function createAkpKey(options: Kms.KmsCreateKeyTypeAkp & { alg: NodeSupportedAkpAlgorithms }) {
+  const { publicKey, privateKey } = await generateKeyPair('ml-dsa', {
+    namedCurve: options.alg,
+  })
+
+  const privateJwk = privateKey.export({
+    format: 'jwk',
+  })
+
+  const publicJwk = publicKey.export({
+    format: 'jwk',
+  })
+
+  return {
+    privateJwk: privateJwk as Kms.KmsJwkPrivateAkp,
+    publicJwk: publicJwk as Kms.KmsJwkPublicAkp,
+  }
+}
