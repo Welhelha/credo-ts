@@ -90,6 +90,19 @@ export function supportedSigningAlgsForKey(
     return keyBits >= 512 ? minBits512 : keyBits >= 384 ? minBits384 : keyBits >= 256 ? minBits256 : []
   }
 
+  if (jwk.kty === 'AKP') {
+    switch (jwk.alg) {
+      case 'ML-DSA-44':
+        return ['ML-DSA-44']
+      case 'ML-DSA-65':
+        return ['ML-DSA-65']
+      case 'ML-DSA-87':
+        return ['ML-DSA-87']
+      default:
+        return []
+    }
+  }
+
   return []
 }
 
@@ -173,6 +186,29 @@ export function createKeyTypeForSigningAlgorithm(algorithm: KnownJwaSignatureAlg
     return {
       kty: 'RSA',
       modulusLength: 4096,
+    }
+  }
+
+  if (algorithm === 'ML-DSA-44' || algorithm === 'ML-DSA-65' || algorithm === 'ML-DSA-87') {
+    if (algorithm === 'ML-DSA-44') {
+      return {
+        kty: 'AKP',
+        alg: 'ML-DSA-44',
+      }
+    }
+
+    if (algorithm === 'ML-DSA-65') {
+      return {
+        kty: 'AKP',
+        alg: 'ML-DSA-65',
+      }
+    }
+    
+    if (algorithm === 'ML-DSA-87') {
+      return {
+        kty: 'AKP',
+        alg: 'ML-DSA-87',
+      }
     }
   }
 

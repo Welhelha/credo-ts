@@ -92,8 +92,11 @@ export function mapJwaSignatureAlgorithmToNode(algorithm: Kms.KnownJwaSignatureA
     case 'Ed25519':
       return undefined
     case 'ML-DSA-44':
+      return null
     case 'ML-DSA-65':
+      return null
     case 'ML-DSA-87':
+      return null
     default:
       throw new Kms.KeyManagementAlgorithmNotSupportedError(`JWA algorithm '${algorithm}'`, 'node')
   }

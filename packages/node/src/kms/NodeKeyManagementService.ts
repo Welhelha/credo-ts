@@ -54,6 +54,10 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
           assertNodeSupportedOctAlgorithm(operation.type)
           return true
         }
+        if (operation.type.kty === 'AKP') {
+          assertNodeSupportedAkpAlgorithm(operation.type)
+          return true
+        }
       } catch {
         return false
       }
@@ -74,6 +78,10 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
 
         if (operation.privateJwk.kty === 'OKP') {
           assertNodeSupportedOkpCrv({ kty: operation.privateJwk.kty, crv: operation.privateJwk.crv })
+          return true
+        }
+        if (operation.privateJwk.kty === 'AKP') {
+          assertNodeSupportedAkpAlgorithm({ kty: operation.privateJwk.kty, alg: operation.privateJwk.alg })
           return true
         }
       } catch {
