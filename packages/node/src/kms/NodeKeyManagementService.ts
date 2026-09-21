@@ -5,10 +5,12 @@ import {
   assertNodeSupportedEcCrv,
   assertNodeSupportedOctAlgorithm,
   assertNodeSupportedOkpCrv,
+  assertNodeSupportedAkpAlgorithm,
   createEcKey,
   createOctKey,
   createOkpKey,
   createRsaKey,
+  createAkpKey,
 } from './crypto/createKey'
 import { performDecrypt } from './crypto/decrypt'
 import { deriveDecryptionKey, deriveEncryptionKey, nodeSupportedKeyAgreementAlgorithms } from './crypto/deriveKey'
@@ -175,6 +177,7 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
           key: privateJwk,
         })
       } else if (privateJwk.kty === 'AKP') {
+        assertNodeSupportedAkpAlgorithm({ kty: privateJwk.kty, alg: privateJwk.alg })
         // This validates the JWK
         createPrivateKey({
           format: 'jwk',
@@ -228,7 +231,11 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
       } else if (type.kty === 'oct') {
         assertNodeSupportedOctAlgorithm(type)
         jwks = await createOctKey(type)
-      } else {
+      } else if (type.kty === 'AKP') {
+        assertNodeSupportedAkpAlgorithm(type)
+        jwks = await createAkpKey(type)
+      }
+      else {
         // @ts-expect-error
         throw new Kms.KeyManagementAlgorithmNotSupportedError(`kty '${type.kty}'`, this.backend)
       }
@@ -287,6 +294,9 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
         assertNodeSupportedOkpCrv(options.key.publicJwk)
         key = options.key.publicJwk
       } else if (options.key.publicJwk?.kty === 'RSA') {
+        key = options.key.publicJwk
+      } else if (options.key.publicJwk?.kty === 'AKP') {
+        assertNodeSupportedAkpAlgorithm({ kty: options.key.publicJwk.kty, alg: options.key.publicJwk.alg })
         key = options.key.publicJwk
       } else {
         // @ts-expect-error

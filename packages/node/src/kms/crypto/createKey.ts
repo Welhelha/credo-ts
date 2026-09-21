@@ -120,17 +120,12 @@ export function assertNodeSupportedAkpAlgorithm(
 }
 
 export async function createAkpKey(options: Kms.KmsCreateKeyTypeAkp & { alg: NodeSupportedAkpAlgorithms }) {
-  const { publicKey, privateKey } = await generateKeyPair('ml-dsa', {
-    namedCurve: options.alg,
-  })
+  const { publicKey, privateKey } = await generateKeyPair(
+    options.alg.toLowerCase() as 'ml-dsa-44' | 'ml-dsa-65' | 'ml-dsa-87'
+  )
 
-  const privateJwk = privateKey.export({
-    format: 'jwk',
-  })
-
-  const publicJwk = publicKey.export({
-    format: 'jwk',
-  })
+  const privateJwk = privateKey.export({ format: 'jwk' })
+  const publicJwk = publicKey.export({ format: 'jwk' })
 
   return {
     privateJwk: privateJwk as Kms.KmsJwkPrivateAkp,

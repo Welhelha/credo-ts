@@ -48,10 +48,12 @@ export type {
   KmsJwkPrivateOct,
   KmsJwkPrivateOkp,
   KmsJwkPrivateRsa,
+  KmsJwkPrivateAkp,
   KmsJwkPublicEc,
   KmsJwkPublicOct,
   KmsJwkPublicOkp,
   KmsJwkPublicRsa,
+  KmsJwkPublicAkp,
 } from './kty'
 export {
   derEcSignatureToRaw,

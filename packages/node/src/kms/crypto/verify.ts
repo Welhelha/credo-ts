@@ -14,7 +14,7 @@ import { mapJwaSignatureAlgorithmToNode } from './sign'
 const verify = promisify(_verify)
 
 export function performVerify(
-  key: Kms.KmsJwkPrivate | Kms.KmsJwkPublicEc | Kms.KmsJwkPublicOkp | Kms.KmsJwkPublicRsa,
+  key: Kms.KmsJwkPrivate | Kms.KmsJwkPublicEc | Kms.KmsJwkPublicOkp | Kms.KmsJwkPublicRsa | Kms.KmsJwkPublicAkp,
   algorithm: Kms.KnownJwaSignatureAlgorithm,
   data: Uint8Array,
   signature: Uint8Array
