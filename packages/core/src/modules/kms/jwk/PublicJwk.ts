@@ -80,17 +80,16 @@ export class PublicJwk<Jwk extends SupportedPublicJwk = SupportedPublicJwk> {
           `Unsupported kty '${publicJwk.kty}' with crv '${publicJwk.crv}' for creating jwk instance`
         )
       }
-    } else if (publicJwk.crv === 'Ed25519') {
-      jwkInstance = new Ed25519PublicJwk({
-        ...publicJwk,
-        crv: publicJwk.crv,
-      })
-    } else if (publicJwk.crv === 'X25519') {
-      jwkInstance = new X25519PublicJwk({
-        ...publicJwk,
-        crv: publicJwk.crv,
-      })
+    } else if (publicJwk.kty === 'OKP') {
+      if (publicJwk.crv === 'Ed25519') {
+        jwkInstance = new Ed25519PublicJwk({ ...publicJwk, crv: publicJwk.crv })
+      } else if (publicJwk.crv === 'X25519') {
+        jwkInstance = new X25519PublicJwk({ ...publicJwk, crv: publicJwk.crv })
+      } else {
+        throw new KeyManagementError(`Unsupported crv '${publicJwk.crv}' for kty 'OKP'`)
+      }
     } else {
+      // Ici publicJwk est nécessairement AKP (ou un futur type sans crv)
       throw new KeyManagementError(`Unsupported kty '${publicJwk.kty}' for creating jwk instance`)
     }
 

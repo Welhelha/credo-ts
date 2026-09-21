@@ -24,6 +24,9 @@ export const KnownJwaSignatureAlgorithms = {
   EdDSA: 'EdDSA',
   Ed25519: 'Ed25519',
   ES256K: 'ES256K',
+  'ML-DSA-44': 'ML-DSA-44',
+  'ML-DSA-65': 'ML-DSA-65',
+  'ML-DSA-87': 'ML-DSA-87',
 } as const
 
 export const zKnownJwaSignatureAlgorithm = z.enum(recordToUnion(KnownJwaSignatureAlgorithms))

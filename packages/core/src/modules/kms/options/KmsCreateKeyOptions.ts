@@ -6,6 +6,7 @@ import { zKmsJwkPublicEc } from '../jwk/kty/ec/ecJwk'
 import { zKmsJwkPublicOct } from '../jwk/kty/oct/octJwk'
 import { zKmsJwkPublicOkp } from '../jwk/kty/okp/okpJwk'
 import { zKmsJwkPublicRsa } from '../jwk/kty/rsa/rsaJwk'
+import { zKmsJwkPublicAkp } from '../jwk/kty/akp/akpJwk'
 import { zKmsKeyId } from './common'
 
 const zKmsCreateKeyTypeEc = zKmsJwkPublicEc.pick({ kty: true, crv: true })
@@ -24,6 +25,12 @@ const zKmsCreateKeyTypeRsa = zKmsJwkPublicRsa.pick({ kty: true }).extend({
   modulusLength: z.union([z.literal(2048), z.literal(3072), z.literal(4096)]),
 })
 export type KmsCreateKeyTypeRsa = z.output<typeof zKmsCreateKeyTypeRsa>
+
+/**
+ * AKP key pair.
+ */
+const zKmsCreateKeyTypeAkp = zKmsJwkPublicAkp.pick({ kty: true, alg: true })
+export type KmsCreateKeyTypeAkp = z.output<typeof zKmsCreateKeyTypeAkp>
 
 /**
  * Represents an octect sequence for symmetric keys
@@ -58,7 +65,12 @@ export const zKmsCreateKeyTypeOct = z.discriminatedUnion('algorithm', [
 ])
 export type KmsCreateKeyTypeOct = z.output<typeof zKmsCreateKeyTypeOct>
 
-export const zKmsCreateKeyTypeAsymmetric = z.union([zKmsCreateKeyTypeEc, zKmsCreateKeyTypeOkp, zKmsCreateKeyTypeRsa])
+export const zKmsCreateKeyTypeAsymmetric = z.union([
+  zKmsCreateKeyTypeEc,
+  zKmsCreateKeyTypeOkp,
+  zKmsCreateKeyTypeRsa,
+  zKmsCreateKeyTypeAkp
+])
 export type KmsCreateKeyTypeAsymmetric = z.output<typeof zKmsCreateKeyTypeAsymmetric>
 
 // TODO: see if we can use nested discriminated union with zod?
@@ -67,6 +79,7 @@ export const zKmsCreateKeyType = z.union([
   zKmsCreateKeyTypeOkp,
   zKmsCreateKeyTypeRsa,
   zKmsCreateKeyTypeOct,
+  zKmsCreateKeyTypeAkp,
 ])
 export type KmsCreateKeyType = z.output<typeof zKmsCreateKeyType>
 

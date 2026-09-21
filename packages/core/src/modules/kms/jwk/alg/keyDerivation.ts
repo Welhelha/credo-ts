@@ -4,10 +4,11 @@ import type { KnownJwaKeyAgreementAlgorithm } from '../jwa'
 import type { KmsJwkPrivate, KmsJwkPublic, KmsJwkPublicCrv } from '../knownJwk'
 import type { KmsJwkPrivateOct, KmsJwkPublicOct } from '../kty/oct/octJwk'
 import type { KmsJwkPrivateRsa, KmsJwkPublicRsa } from '../kty/rsa/rsaJwk'
+import type { KmsJwkPrivateAkp, KmsJwkPublicAkp } from '../kty/akp/akpJwk'
 
 function isCrvJwk<Jwk extends KmsJwkPrivate | KmsJwkPublic>(
   jwk: Jwk
-): jwk is Exclude<Jwk, KmsJwkPrivateOct | KmsJwkPrivateRsa | KmsJwkPublicOct | KmsJwkPublicRsa> {
+): jwk is Exclude<Jwk, KmsJwkPrivateOct | KmsJwkPrivateRsa | KmsJwkPublicOct | KmsJwkPublicRsa | KmsJwkPrivateAkp | KmsJwkPublicAkp> {
   return jwk.kty === 'EC' || jwk.kty === 'OKP'
 }
 
