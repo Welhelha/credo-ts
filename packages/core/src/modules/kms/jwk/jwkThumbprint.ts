@@ -20,6 +20,10 @@ export const zJwkThumbprintComponents = zKmsJwkPublic.transform((data) => {
     return { k: data.k, kty: data.kty }
   }
 
+  if (data.kty === 'AKP') {
+    return { alg: data.alg, kty: data.kty, pub: data.pub }
+  }
+
   throw new Error('Unsupported kty')
 })
 

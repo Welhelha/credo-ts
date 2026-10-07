@@ -1,5 +1,6 @@
 import { CredoError } from '../../../error'
 import {
+  AkpPublicJwk,
   Ed25519PublicJwk,
   getJwkHumanDescription,
   P256PublicJwk,
@@ -22,6 +23,9 @@ export function getDidDocumentForPublicJwk(did: string, publicJwk: PublicJwk) {
   }
   if (publicJwk.is(X25519PublicJwk)) {
     return getX25519DidDoc(did, publicJwk as PublicJwk<X25519PublicJwk>)
+  }
+  if (publicJwk.is(AkpPublicJwk)) {
+    return getJsonWebKey2020DidDocument(did, publicJwk)
   }
   if (
     publicJwk.is(P256PublicJwk) ||

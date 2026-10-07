@@ -39,6 +39,8 @@ export const publicJwkToCryptoKeyAlgorithm = (
     if (publicJwk.crv === 'Ed25519') {
       return { name: 'Ed25519' }
     }
+  } else if (publicJwk.kty === 'AKP') {
+    throw new CredoWebCryptoError('ML-DSA keys are not supported by WebCrypto')
   } else if (publicJwk.kty === 'RSA') {
     const modulusLength = TypedArrayEncoder.fromBase64Url(publicJwk.n).length * 8
     const publicExponent = TypedArrayEncoder.fromBase64Url(publicJwk.e)
@@ -223,6 +225,10 @@ export const publicJwkToSpki = (publicJwk: PublicJwk): SubjectPublicKeyInfo => {
       algorithm: rsaKeyAlgorithmIdentifier,
       subjectPublicKey: rsaPublicKeyDer,
     })
+  }
+
+  if (publicKey.kty === 'AKP') {
+    throw new CredoWebCryptoError('ML-DSA keys are not supported by WebCrypto SPKI conversion')
   }
 
   const crvToAlgorithm: Record<(typeof publicKey)['crv'], AlgorithmIdentifier> = {

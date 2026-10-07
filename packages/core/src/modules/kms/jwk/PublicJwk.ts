@@ -11,6 +11,7 @@ import type { KnownJwaKeyAgreementAlgorithm, KnownJwaSignatureAlgorithm } from '
 import { calculateJwkThumbprint } from './jwkThumbprint'
 import { assertJwkAsymmetric, type KmsJwkPublicAsymmetric, publicJwkFromPrivateJwk, zKmsJwkPublic } from './knownJwk'
 import {
+  AkpPublicJwk,
   Ed25519PublicJwk,
   P256PublicJwk,
   P384PublicJwk,
@@ -21,6 +22,7 @@ import {
 } from './kty'
 
 export const SupportedPublicJwks = [
+  AkpPublicJwk,
   Ed25519PublicJwk,
   P256PublicJwk,
   P384PublicJwk,
@@ -31,6 +33,7 @@ export const SupportedPublicJwks = [
 ]
 export type SupportedPublicJwkClass = (typeof SupportedPublicJwks)[number]
 export type SupportedPublicJwk =
+  | AkpPublicJwk
   | Ed25519PublicJwk
   | P256PublicJwk
   | P384PublicJwk
@@ -52,7 +55,9 @@ export class PublicJwk<Jwk extends SupportedPublicJwk = SupportedPublicJwk> {
     assertJwkAsymmetric(publicJwk)
 
     let jwkInstance: SupportedPublicJwk
-    if (publicJwk.kty === 'RSA') {
+    if (publicJwk.kty === 'AKP') {
+      jwkInstance = new AkpPublicJwk(publicJwk)
+    } else if (publicJwk.kty === 'RSA') {
       jwkInstance = new RsaPublicJwk(publicJwk)
     } else if (publicJwk.kty === 'EC') {
       if (publicJwk.crv === 'P-256') {
@@ -89,7 +94,6 @@ export class PublicJwk<Jwk extends SupportedPublicJwk = SupportedPublicJwk> {
         throw new KeyManagementError(`Unsupported crv '${publicJwk.crv}' for kty 'OKP'`)
       }
     } else {
-      // Ici publicJwk est nécessairement AKP (ou un futur type sans crv)
       throw new KeyManagementError(`Unsupported kty '${publicJwk.kty}' for creating jwk instance`)
     }
 
@@ -248,6 +252,8 @@ export class PublicJwk<Jwk extends SupportedPublicJwk = SupportedPublicJwk> {
 
     if (publicKey.kty === 'RSA') {
       jwkInstance = RsaPublicJwk.fromPublicKey(publicKey)
+    } else if (publicKey.kty === 'AKP') {
+      throw new KeyManagementError('AKP public keys must be constructed from their JWK representation')
     } else if (publicKey.kty === 'EC') {
       if (publicKey.crv === 'P-256') {
         jwkInstance = P256PublicJwk.fromPublicKey(publicKey.publicKey)
@@ -263,15 +269,12 @@ export class PublicJwk<Jwk extends SupportedPublicJwk = SupportedPublicJwk> {
           `Unsupported kty '${publicKey.kty}' with crv '${publicKey.crv}' for creating jwk instance based on public key bytes`
         )
       }
-    } else if (publicKey.crv === 'X25519') {
+    } else if (publicKey.kty === 'OKP' && publicKey.crv === 'X25519') {
       jwkInstance = X25519PublicJwk.fromPublicKey(publicKey.publicKey)
-    } else if (publicKey.crv === 'Ed25519') {
+    } else if (publicKey.kty === 'OKP' && publicKey.crv === 'Ed25519') {
       jwkInstance = Ed25519PublicJwk.fromPublicKey(publicKey.publicKey)
     } else {
-      throw new KeyManagementError(
-        // @ts-expect-error
-        `Unsupported kty '${publicKey.kty}' for creating jwk instance based on public key bytes`
-      )
+      throw new KeyManagementError('Unsupported public key type for creating jwk instance based on public key bytes')
     }
 
     return new PublicJwk(jwkInstance) as PublicJwk<ExtractByPublicKey<SupportedPublicJwk, Supported>>
@@ -281,6 +284,10 @@ export class PublicJwk<Jwk extends SupportedPublicJwk = SupportedPublicJwk> {
    * Returns the jwk encoded a Base58 multibase encoded multicodec key
    */
   public get fingerprint() {
+    if (this.jwk instanceof AkpPublicJwk) {
+      return `mldsa:${this.jwk.jwk.alg}:${TypedArrayEncoder.toBase64Url(this.getJwkThumbprint())}`
+    }
+
     const prefixBytes = VarintEncoder.encode(this.jwk.multicodecPrefix)
     const prefixedPublicKey = new Uint8Array([...prefixBytes, ...this.jwk.multicodec])
 
