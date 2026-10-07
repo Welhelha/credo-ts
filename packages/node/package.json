@@ -34,6 +34,7 @@
   "dependencies": {
     "@credo-ts/core": "workspace:*",
     "@credo-ts/didcomm": "workspace:*",
+    "@noble/post-quantum": "^0.7.1",
     "@types/express": "catalog:",
     "express": "catalog:",
     "hpke": "catalog:",

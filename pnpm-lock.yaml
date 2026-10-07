@@ -885,6 +885,9 @@ importers:
       '@credo-ts/didcomm':
         specifier: workspace:*
         version: link:../didcomm
+      '@noble/post-quantum':
+        specifier: ^0.7.1
+        version: 0.7.1
       '@types/express':
         specifier: 'catalog:'
         version: 5.0.6
