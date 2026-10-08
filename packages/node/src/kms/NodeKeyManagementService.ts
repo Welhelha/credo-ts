@@ -5,10 +5,12 @@ import {
   assertNodeSupportedEcCrv,
   assertNodeSupportedOctAlgorithm,
   assertNodeSupportedOkpCrv,
+  assertNodeSupportedAkpAlgorithm,
   createEcKey,
   createOctKey,
   createOkpKey,
   createRsaKey,
+  createAkpKey,
 } from './crypto/createKey'
 import { performDecrypt } from './crypto/decrypt'
 import { deriveDecryptionKey, deriveEncryptionKey, nodeSupportedKeyAgreementAlgorithms } from './crypto/deriveKey'
@@ -52,6 +54,10 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
           assertNodeSupportedOctAlgorithm(operation.type)
           return true
         }
+        if (operation.type.kty === 'AKP') {
+          assertNodeSupportedAkpAlgorithm(operation.type)
+          return true
+        }
       } catch {
         return false
       }
@@ -72,6 +78,10 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
 
         if (operation.privateJwk.kty === 'OKP') {
           assertNodeSupportedOkpCrv({ kty: operation.privateJwk.kty, crv: operation.privateJwk.crv })
+          return true
+        }
+        if (operation.privateJwk.kty === 'AKP') {
+          assertNodeSupportedAkpAlgorithm({ kty: operation.privateJwk.kty, alg: operation.privateJwk.alg })
           return true
         }
       } catch {
@@ -127,7 +137,7 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
   }
 
   public randomBytes(_agentContext: AgentContext, options: Kms.KmsRandomBytesOptions): Kms.KmsRandomBytesReturn {
-    return new Uint8Array(randomBytes(options.length))
+    return randomBytes(options.length)
   }
 
   public async getPublicKey(agentContext: AgentContext, keyId: string): Promise<Kms.KmsJwkPublic | null> {
@@ -169,6 +179,13 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
           key: privateJwk,
         })
       } else if (privateJwk.kty === 'RSA') {
+        // This validates the JWK
+        createPrivateKey({
+          format: 'jwk',
+          key: privateJwk,
+        })
+      } else if (privateJwk.kty === 'AKP') {
+        assertNodeSupportedAkpAlgorithm({ kty: privateJwk.kty, alg: privateJwk.alg })
         // This validates the JWK
         createPrivateKey({
           format: 'jwk',
@@ -222,7 +239,11 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
       } else if (type.kty === 'oct') {
         assertNodeSupportedOctAlgorithm(type)
         jwks = await createOctKey(type)
-      } else {
+      } else if (type.kty === 'AKP') {
+        assertNodeSupportedAkpAlgorithm(type)
+        jwks = await createAkpKey(type)
+      }
+      else {
         // @ts-expect-error
         throw new Kms.KeyManagementAlgorithmNotSupportedError(`kty '${type.kty}'`, this.backend)
       }
@@ -258,7 +279,7 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
       const signature = await performSign(key, algorithm, data)
 
       return {
-        signature: new Uint8Array(signature),
+        signature,
       }
     } catch (error) {
       if (error instanceof Kms.KeyManagementError) throw error
@@ -281,6 +302,9 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
         assertNodeSupportedOkpCrv(options.key.publicJwk)
         key = options.key.publicJwk
       } else if (options.key.publicJwk?.kty === 'RSA') {
+        key = options.key.publicJwk
+      } else if (options.key.publicJwk?.kty === 'AKP') {
+        assertNodeSupportedAkpAlgorithm({ kty: options.key.publicJwk.kty, alg: options.key.publicJwk.alg })
         key = options.key.publicJwk
       } else {
         // @ts-expect-error
@@ -383,11 +407,9 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
       Kms.assertKeyAllowsEncrypt(encryptionKey)
 
       // 3. Perform the encryption operation
-      const { encrypted, iv, tag } = await performEncrypt(encryptionKey, encryption, data)
+      const encrypted = await performEncrypt(encryptionKey, encryption, data)
       return {
-        encrypted: new Uint8Array(encrypted),
-        iv: new Uint8Array(iv),
-        tag: tag ? new Uint8Array(tag) : undefined,
+        ...encrypted,
         encryptedKey,
       }
     } catch (error) {
@@ -473,8 +495,7 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
       Kms.assertKeyAllowsEncrypt(decryptionKey)
 
       // 3. Perform the decryption operation
-      const { data } = await performDecrypt(decryptionKey, decryption, encrypted)
-      return { data: new Uint8Array(data) }
+      return await performDecrypt(decryptionKey, decryption, encrypted)
     } catch (error) {
       if (error instanceof Kms.KeyManagementError) throw error
 

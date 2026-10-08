@@ -1,6 +1,6 @@
 import { CredoError } from '../../../../error'
 import { JsonEncoder } from '../../../../utils'
-import { assertJwkHasNoPrivateKeyMaterial, PublicJwk } from '../../../kms'
+import { PublicJwk } from '../../../kms'
 import { parseDid } from '../../domain/parse'
 import { getDidJwkDocument } from './didJwkDidDocument'
 
