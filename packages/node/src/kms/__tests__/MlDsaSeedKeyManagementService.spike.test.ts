@@ -97,7 +97,6 @@ export class MlDsaSeedKeyManagementService implements Kms.KeyManagementService {
     const { type, keyId } = options
 
     if (type.kty !== 'AKP') {
-      // @ts-expect-error only AKP is supported in this spike
       throw new Kms.KeyManagementAlgorithmNotSupportedError(`kty '${type.kty}'`, this.backend)
     }
     this.assertSupportedAlg(type.alg)
@@ -117,7 +116,7 @@ export class MlDsaSeedKeyManagementService implements Kms.KeyManagementService {
     return {
       keyId: kid,
       publicJwk: { kid, kty: 'AKP', alg: type.alg, pub: publicJwk.pub },
-    } as Kms.KmsCreateKeyReturn<Type>
+    }as unknown as Kms.KmsCreateKeyReturn<Type>
   }
 
   public async importKey<Jwk extends Kms.KmsJwkPrivate>(
@@ -127,7 +126,6 @@ export class MlDsaSeedKeyManagementService implements Kms.KeyManagementService {
     const privateJwk = options.privateJwk
 
     if (privateJwk.kty !== 'AKP') {
-      // @ts-expect-error only AKP is supported in this spike
       throw new Kms.KeyManagementAlgorithmNotSupportedError(`kty '${privateJwk.kty}'`, this.backend)
     }
     this.assertSupportedAlg(privateJwk.alg)
@@ -142,7 +140,7 @@ export class MlDsaSeedKeyManagementService implements Kms.KeyManagementService {
     return {
       keyId: kid,
       publicJwk: { kid, kty: 'AKP', alg: privateJwk.alg, pub: privateJwk.pub },
-    } as Kms.KmsImportKeyReturn<Jwk>
+    } as unknown as Kms.KmsImportKeyReturn<Jwk>
   }
 
   public async deleteKey(_agentContext: AgentContext, options: Kms.KmsDeleteKeyOptions): Promise<boolean> {
@@ -362,17 +360,13 @@ describe('MlDsaSeedKeyManagementService (spike)', () => {
     expect(
       service.isOperationSupported(agentContext, {
         operation: 'sign',
-        key: { keyId: 'key-id' },
         algorithm: 'ML-DSA-87',
-        data: new Uint8Array([1, 2, 3]),
       })
     ).toBe(true)
     expect(
       service.isOperationSupported(agentContext, {
         operation: 'encrypt',
-        key: { keyId: 'key-id' },
         encryption: { algorithm: 'A256GCM', iv: new Uint8Array(12) },
-        data: new Uint8Array([1, 2, 3]),
       })
     ).toBe(false)
   })

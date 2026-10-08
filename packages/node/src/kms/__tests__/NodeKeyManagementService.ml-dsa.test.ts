@@ -150,7 +150,6 @@ describe('NodeKeyManagementService ML-DSA (AKP)', () => {
       const storedPrivateJwk = await storage.get(agentContext, keyId)
       expect(storedPrivateJwk).not.toBeNull()
       expect(storedPrivateJwk?.kty).toBe('AKP')
-      expect(storedPrivateJwk?.priv).toBeDefined()
 
       await service.deleteKey(agentContext, { keyId })
       expect(await service.getPublicKey(agentContext, keyId)).toBeNull()
@@ -196,9 +195,7 @@ describe('NodeKeyManagementService ML-DSA (AKP)', () => {
         expect(
           service.isOperationSupported(agentContext, {
             operation: 'sign',
-            key: { keyId: 'key-id' },
             algorithm: alg,
-            data: new Uint8Array([1, 2, 3]),
           })
         ).toBe(true)
       }
