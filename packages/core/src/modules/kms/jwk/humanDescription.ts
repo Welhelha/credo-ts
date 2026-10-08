@@ -24,6 +24,10 @@ export function getJwkHumanDescription(jwk: KmsJwkPrivate | KmsJwkPublic) {
     return 'oct key'
   }
 
+  if (jwk.kty === 'AKP') {
+    return `${jwk.kty} key with alg '${jwk.alg}'`
+  }
+
   // @ts-expect-error
   return `'${jwk.kty}' key'`
 }

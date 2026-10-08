@@ -33,7 +33,6 @@ export {
 } from './keyOps'
 export {
   assertJwkAsymmetric,
-  assertJwkHasNoPrivateKeyMaterial,
   isJwkAsymmetric,
   type KmsJwkPrivate,
   type KmsJwkPrivateAsymmetric,
@@ -45,16 +44,19 @@ export {
   publicJwkFromPrivateJwk,
 } from './knownJwk'
 export type {
+  KmsJwkPrivateAkp,
   KmsJwkPrivateEc,
   KmsJwkPrivateOct,
   KmsJwkPrivateOkp,
   KmsJwkPrivateRsa,
+  KmsJwkPublicAkp,
   KmsJwkPublicEc,
   KmsJwkPublicOct,
   KmsJwkPublicOkp,
   KmsJwkPublicRsa,
 } from './kty'
 export {
+  AkpPublicJwk,
   derEcSignatureToRaw,
   Ed25519PublicJwk,
   P256PublicJwk,

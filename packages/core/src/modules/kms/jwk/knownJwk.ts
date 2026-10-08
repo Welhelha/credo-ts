@@ -7,6 +7,7 @@ import type {
   KmsCreateKeyTypeOct,
   KmsCreateKeyTypeOkp,
   KmsCreateKeyTypeRsa,
+  KmsCreateKeyTypeAkp,
 } from '../options'
 import {
   type KmsJwkPrivateEc,
@@ -36,11 +37,19 @@ import {
   zKmsJwkPrivateToPublicRsa,
   zKmsJwkPublicRsa,
 } from './kty/rsa/rsaJwk'
+import {
+  type KmsJwkPrivateAkp,
+  type KmsJwkPublicAkp,
+  zKmsJwkPrivateAkp,
+  zKmsJwkPrivateToPublicAkp,
+  zKmsJwkPublicAkp,
+} from './kty/akp/akpJwk'
 
 export const zKmsJwkPublicAsymmetric = z.discriminatedUnion('kty', [
   zKmsJwkPublicEc,
   zKmsJwkPublicRsa,
   zKmsJwkPublicOkp,
+  zKmsJwkPublicAkp,
 ])
 export type KmsJwkPublicAsymmetric = z.output<typeof zKmsJwkPublicAsymmetric>
 
@@ -70,18 +79,9 @@ export const zKmsJwkPublic = z.discriminatedUnion('kty', [
   zKmsJwkPublicRsa,
   zKmsJwkPublicOct,
   zKmsJwkPublicOkp,
+  zKmsJwkPublicAkp,
 ])
 export type KmsJwkPublic = z.output<typeof zKmsJwkPublic>
-
-const zJwkWithoutPrivateKeyMaterial = z
-  .record(z.string(), z.unknown())
-  .refine((jwk) => !['d', 'p', 'q', 'dp', 'dq', 'qi', 'oth', 'k'].some((parameter) => parameter in jwk), {
-    message: 'JWK contains private key material',
-  })
-
-export function assertJwkHasNoPrivateKeyMaterial(jwk: unknown): asserts jwk is Record<string, unknown> {
-  zParseWithErrorHandling(zJwkWithoutPrivateKeyMaterial, jwk, 'Unsafe JWK')
-}
 
 const zKmsJwkPrivateToPublic = z
   .discriminatedUnion('kty', [
@@ -89,6 +89,7 @@ const zKmsJwkPrivateToPublic = z
     zKmsJwkPrivateToPublicRsa,
     zKmsJwkPrivateToPublicOct,
     zKmsJwkPrivateToPublicOkp,
+    zKmsJwkPrivateToPublicAkp,
   ])
   // Mdoc library does not work well with undefined values. It should not be needed
   // but for now it's the easiest approach
@@ -105,6 +106,7 @@ export const zKmsJwkPrivate = z.discriminatedUnion('kty', [
   zKmsJwkPrivateRsa,
   zKmsJwkPrivateOct,
   zKmsJwkPrivateOkp,
+  zKmsJwkPrivateAkp,
 ])
 export type KmsJwkPrivate = z.output<typeof zKmsJwkPrivate>
 
@@ -112,6 +114,7 @@ export const zKmsJwkPrivateAsymmetric = z.discriminatedUnion('kty', [
   zKmsJwkPrivateEc,
   zKmsJwkPrivateRsa,
   zKmsJwkPrivateOkp,
+  zKmsJwkPrivateAkp,
 ])
 export type KmsJwkPrivateAsymmetric = z.output<typeof zKmsJwkPrivateAsymmetric>
 
@@ -128,7 +131,9 @@ export type KmsJwkPrivateFromKmsJwkPublic<Type extends KmsCreateKeyType> = Type 
       ? KmsJwkPrivateOkp & { crv: Type['crv'] }
       : Type extends KmsCreateKeyTypeEc
         ? KmsJwkPrivateEc & { crv: Type['crv'] }
-        : KmsJwkPrivate
+        : Type extends KmsCreateKeyTypeAkp
+          ? KmsJwkPrivateAkp & { alg: Type['alg'] }
+          : KmsJwkPrivate
 
 export type KmsJwkPublicFromKmsJwkPrivate<Jwk extends KmsJwkPrivate> = Jwk extends KmsJwkPrivateRsa
   ? KmsJwkPublicRsa
@@ -138,7 +143,9 @@ export type KmsJwkPublicFromKmsJwkPrivate<Jwk extends KmsJwkPrivate> = Jwk exten
       ? KmsJwkPublicOkp & { crv: Jwk['crv'] }
       : Jwk extends KmsJwkPrivateEc
         ? KmsJwkPublicEc & { crv: Jwk['crv'] }
-        : KmsJwkPublic
+        : Jwk extends KmsJwkPrivateAkp
+          ? KmsJwkPublicAkp & { alg: Jwk['alg'] }
+          : KmsJwkPublic
 
 export type KmsJwkPublicFromCreateType<Type extends KmsCreateKeyType> = Type extends KmsCreateKeyTypeRsa
   ? KmsJwkPublicRsa
@@ -148,4 +155,6 @@ export type KmsJwkPublicFromCreateType<Type extends KmsCreateKeyType> = Type ext
       ? KmsJwkPublicOkp & { crv: Type['crv'] }
       : Type extends KmsCreateKeyTypeEc
         ? KmsJwkPublicEc & { crv: Type['crv'] }
-        : KmsJwkPublic
+        : Type extends KmsCreateKeyTypeAkp
+          ? KmsJwkPublicAkp & { alg: Type['alg'] }
+          : KmsJwkPublic

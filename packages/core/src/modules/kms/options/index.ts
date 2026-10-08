@@ -8,6 +8,7 @@ export type {
   KmsCreateKeyTypeOct,
   KmsCreateKeyTypeOkp,
   KmsCreateKeyTypeRsa,
+  KmsCreateKeyTypeAkp,
 } from './KmsCreateKeyOptions'
 export type {
   KmsDecryptDataContentDecryption,
