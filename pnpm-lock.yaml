@@ -200,6 +200,9 @@ catalogs:
     '@hyperledger/indy-vdr-shared':
       specifier: ^0.3.0
       version: 0.3.0
+    '@noble/post-quantum':
+      specifier: ^0.7.1
+      version: 0.7.1
     '@openwallet-foundation/askar-nodejs':
       specifier: 0.6.1
       version: 0.6.1
@@ -1043,6 +1046,9 @@ importers:
       '@credo-ts/didcomm':
         specifier: workspace:*
         version: link:../didcomm
+      '@noble/post-quantum':
+        specifier: 'catalog:'
+        version: 0.7.1
       '@types/express':
         specifier: 'catalog:'
         version: 5.0.6

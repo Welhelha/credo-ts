@@ -2,6 +2,7 @@ import { sign as _sign, constants, createHmac, createPrivateKey, createSecretKey
 import { promisify } from 'node:util'
 import type { CanBePromise } from '@credo-ts/core'
 import { Kms, TypedArrayEncoder } from '@credo-ts/core'
+import { createMlDsaPrivateKey, getMlDsa } from './createKey'
 
 const sign = promisify(_sign)
 
@@ -10,6 +11,14 @@ export function performSign(
   algorithm: Kms.KnownJwaSignatureAlgorithm,
   data: Uint8Array
 ): CanBePromise<Uint8Array> {
+  if (key.kty === 'AKP') {
+    if (key.alg !== algorithm) {
+      throw new Kms.KeyManagementError(`AKP key with alg '${key.alg}' cannot be used with algorithm '${algorithm}'`)
+    }
+
+    return getMlDsa(key.alg).sign(data, createMlDsaPrivateKey(key))
+  }
+
   const nodeAlgorithm = mapJwaSignatureAlgorithmToNode(algorithm)
   const nodeKey =
     key.kty === 'oct'
@@ -38,9 +47,6 @@ export function performSign(
       return createHmac(nodeAlgorithm as string, nodeKey)
         .update(data)
         .digest()
-    }
-    case 'AKP': {
-      return sign(nodeAlgorithm, data, nodeKey)
     }
     default:
       // @ts-expect-error

@@ -2,15 +2,16 @@ import { createPrivateKey, createSecretKey, randomBytes, randomUUID } from 'node
 import type { AgentContext } from '@credo-ts/core'
 import { Kms, TypedArrayEncoder } from '@credo-ts/core'
 import {
+  assertNodeSupportedAkpAlgorithm,
   assertNodeSupportedEcCrv,
   assertNodeSupportedOctAlgorithm,
   assertNodeSupportedOkpCrv,
-  assertNodeSupportedAkpAlgorithm,
+  createAkpKey,
   createEcKey,
+  createMlDsaPrivateKey,
   createOctKey,
   createOkpKey,
   createRsaKey,
-  createAkpKey,
 } from './crypto/createKey'
 import { performDecrypt } from './crypto/decrypt'
 import { deriveDecryptionKey, deriveEncryptionKey, nodeSupportedKeyAgreementAlgorithms } from './crypto/deriveKey'
@@ -186,11 +187,7 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
         })
       } else if (privateJwk.kty === 'AKP') {
         assertNodeSupportedAkpAlgorithm({ kty: privateJwk.kty, alg: privateJwk.alg })
-        // This validates the JWK
-        createPrivateKey({
-          format: 'jwk',
-          key: privateJwk,
-        })
+        createMlDsaPrivateKey(privateJwk)
       } else {
         // All kty values supported for now, but can change in the future
         // @ts-expect-error
@@ -242,8 +239,7 @@ export class NodeKeyManagementService implements Kms.KeyManagementService {
       } else if (type.kty === 'AKP') {
         assertNodeSupportedAkpAlgorithm(type)
         jwks = await createAkpKey(type)
-      }
-      else {
+      } else {
         // @ts-expect-error
         throw new Kms.KeyManagementAlgorithmNotSupportedError(`kty '${type.kty}'`, this.backend)
       }

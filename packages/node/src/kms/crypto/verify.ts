@@ -8,7 +8,7 @@ import {
 } from 'node:crypto'
 import { promisify } from 'node:util'
 import { type CanBePromise, Kms, TypedArrayEncoder } from '@credo-ts/core'
-
+import { getMlDsa } from './createKey'
 import { mapJwaSignatureAlgorithmToNode } from './sign'
 
 const verify = promisify(_verify)
@@ -19,6 +19,14 @@ export function performVerify(
   data: Uint8Array,
   signature: Uint8Array
 ): CanBePromise<boolean> {
+  if (key.kty === 'AKP') {
+    if (key.alg !== algorithm) {
+      throw new Kms.KeyManagementError(`AKP key with alg '${key.alg}' cannot be used with algorithm '${algorithm}'`)
+    }
+
+    return getMlDsa(key.alg).verify(signature, data, TypedArrayEncoder.fromBase64Url(key.pub))
+  }
+
   const nodeAlgorithm = mapJwaSignatureAlgorithmToNode(algorithm)
   const nodeKey =
     key.kty === 'oct'
@@ -49,9 +57,6 @@ export function performVerify(
         .digest()
 
       return timingSafeEqual(expectedHmac, signature)
-    }
-    case 'AKP': {
-      return verify(nodeAlgorithm, data, nodeKey, signature)
     }
     default:
       // @ts-expect-error

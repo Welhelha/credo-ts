@@ -53,6 +53,42 @@ describe('NodeKeyManagementService', () => {
       ).rejects.toThrow(new Kms.KeyManagementKeyExistsError('test-key', service.backend))
     })
 
+    it.each([
+      ['ML-DSA-44', 1312],
+      ['ML-DSA-65', 1952],
+      ['ML-DSA-87', 2592],
+    ] as const)('creates %s key successfully', async (alg, publicKeyLength) => {
+      const { keyId, publicJwk } = await service.createKey(agentContext, {
+        type: { kty: 'AKP', alg },
+      })
+      const privateJwk = await storage.get(agentContext, keyId)
+
+      expect(publicJwk).toEqual({
+        kty: 'AKP',
+        alg,
+        pub: expect.any(String),
+        kid: keyId,
+      })
+      expect(TypedArrayEncoder.fromBase64Url(publicJwk.pub)).toHaveLength(publicKeyLength)
+      expect(privateJwk?.kty).toBe('AKP')
+      if (privateJwk?.kty !== 'AKP') throw new Error('Expected AKP private key')
+      expect(TypedArrayEncoder.fromBase64Url(privateJwk.priv)).toHaveLength(32)
+
+      const data = new Uint8Array([1, 2, 3])
+      const { signature } = await service.sign(agentContext, { keyId, algorithm: alg, data })
+      const result = await service.verify(agentContext, { key: { publicJwk }, algorithm: alg, data, signature })
+
+      expect(result).toEqual({ verified: true, publicJwk })
+      expect(
+        await service.verify(agentContext, {
+          key: { publicJwk },
+          algorithm: alg,
+          data: new Uint8Array([3, 2, 1]),
+          signature,
+        })
+      ).toEqual({ verified: false })
+    })
+
     it('creates EC P-256 key successfully', async () => {
       const result = await service.createKey(agentContext, {
         type: { kty: 'EC', crv: 'P-256' },
@@ -1517,6 +1553,51 @@ describe('NodeKeyManagementService', () => {
   })
 
   describe('importKey', () => {
+    it.each(['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'] as const)('imports %s key pair', async (alg) => {
+      const { keyId } = await service.createKey(agentContext, { type: { kty: 'AKP', alg } })
+      const privateJwk = await storage.get(agentContext, keyId)
+      if (privateJwk?.kty !== 'AKP') throw new Error('Expected AKP private key')
+
+      const importedService = new NodeKeyManagementService(new NodeInMemoryKeyManagementStorage())
+      const result = await importedService.importKey(agentContext, { privateJwk })
+      const data = new Uint8Array([1, 2, 3])
+      const { signature } = await importedService.sign(agentContext, { keyId: result.keyId, algorithm: alg, data })
+
+      expect(
+        await importedService.verify(agentContext, {
+          key: { publicJwk: result.publicJwk },
+          algorithm: alg,
+          data,
+          signature,
+        })
+      ).toEqual({ verified: true, publicJwk: result.publicJwk })
+    })
+
+    it('rejects an AKP private JWK with an invalid seed length', async () => {
+      await expect(
+        service.importKey(agentContext, {
+          privateJwk: {
+            kty: 'AKP',
+            alg: 'ML-DSA-44',
+            pub: TypedArrayEncoder.toBase64Url(new Uint8Array(1312)),
+            priv: TypedArrayEncoder.toBase64Url(new Uint8Array(31)),
+          },
+        })
+      ).rejects.toThrow('Invalid ML-DSA-44 private key seed length')
+    })
+
+    it('rejects an AKP private JWK with a mismatched public key', async () => {
+      const { keyId } = await service.createKey(agentContext, { type: { kty: 'AKP', alg: 'ML-DSA-44' } })
+      const privateJwk = await storage.get(agentContext, keyId)
+      if (privateJwk?.kty !== 'AKP') throw new Error('Expected AKP private key')
+
+      await expect(
+        service.importKey(agentContext, {
+          privateJwk: { ...privateJwk, kid: undefined, pub: TypedArrayEncoder.toBase64Url(new Uint8Array(1312)) },
+        })
+      ).rejects.toThrow('Public key does not match ML-DSA-44 private key seed')
+    })
+
     it('imports RSA key pair with 2048 bit length with provided keyId', async () => {
       const keyId = 'test-key-id'
       const result = await service.importKey(agentContext, {
