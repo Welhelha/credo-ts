@@ -1,6 +1,6 @@
 import type { HashName } from '../../../crypto'
 import { CredoError } from '../../../error'
-import { MultiBaseEncoder, TypedArrayEncoder, VarintEncoder } from '../../../utils'
+import { MultiBaseEncoder, VarintEncoder } from '../../../utils'
 import type { Constructor } from '../../../utils/mixins'
 import { zParseWithErrorHandling } from '../../../utils/zod'
 import { KeyManagementError } from '../error/KeyManagementError'
@@ -11,6 +11,7 @@ import type { KnownJwaKeyAgreementAlgorithm, KnownJwaSignatureAlgorithm } from '
 import { calculateJwkThumbprint } from './jwkThumbprint'
 import { assertJwkAsymmetric, type KmsJwkPublicAsymmetric, publicJwkFromPrivateJwk, zKmsJwkPublic } from './knownJwk'
 import {
+  AkpPublicJwk,
   Ed25519PublicJwk,
   P256PublicJwk,
   P384PublicJwk,
@@ -21,6 +22,7 @@ import {
 } from './kty'
 
 export const SupportedPublicJwks = [
+  AkpPublicJwk,
   Ed25519PublicJwk,
   P256PublicJwk,
   P384PublicJwk,
@@ -31,6 +33,7 @@ export const SupportedPublicJwks = [
 ]
 export type SupportedPublicJwkClass = (typeof SupportedPublicJwks)[number]
 export type SupportedPublicJwk =
+  | AkpPublicJwk
   | Ed25519PublicJwk
   | P256PublicJwk
   | P384PublicJwk
@@ -57,8 +60,10 @@ export class PublicJwk<Jwk extends SupportedPublicJwk = SupportedPublicJwk> {
     assertJwkAsymmetric(publicJwk)
 
     let jwkInstance: SupportedPublicJwk
-    if (publicJwk.kty === 'RSA') {
-      jwkInstance = new RsaPublicJwk({ ...publicJwk })
+    if (publicJwk.kty === 'AKP') {
+      jwkInstance = new AkpPublicJwk(publicJwk)
+    } else if (publicJwk.kty === 'RSA') {
+      jwkInstance = new RsaPublicJwk(publicJwk)
     } else if (publicJwk.kty === 'EC') {
       if (publicJwk.crv === 'P-256') {
         jwkInstance = new P256PublicJwk({
@@ -255,7 +260,7 @@ export class PublicJwk<Jwk extends SupportedPublicJwk = SupportedPublicJwk> {
    */
   public set alg(alg: KnownJwaSignatureAlgorithm | KnownJwaKeyAgreementAlgorithm) {
     const supportedAlgorithms: Array<KnownJwaSignatureAlgorithm | KnownJwaKeyAgreementAlgorithm> = [
-      ...(this.jwk.supportedSignatureAlgorithms ?? []),
+      ...this.supportedSignatureAlgorithms,
       ...(this.jwk.supportedEncryptionKeyAgreementAlgorithms ?? []),
     ]
 
@@ -309,24 +314,44 @@ export class PublicJwk<Jwk extends SupportedPublicJwk = SupportedPublicJwk> {
   }
 
   /**
-   * Returns the jwk encoded a Base58 multibase encoded multicodec key
+   * Returns the JWK encoded as a multibase-encoded multicodec key
    */
   public get fingerprint() {
+    if (this.jwk.multicodecPrefix === undefined) {
+      throw new KeyManagementError(`Multicodec fingerprint is not supported for ${this.jwkTypeHumanDescription}`)
+    }
+
     const prefixBytes = VarintEncoder.encode(this.jwk.multicodecPrefix)
     const prefixedPublicKey = new Uint8Array([...prefixBytes, ...this.jwk.multicodec])
 
-    return `z${TypedArrayEncoder.toBase58(prefixedPublicKey)}`
+    return MultiBaseEncoder.encode(prefixedPublicKey, this.jwk.jwk.kty === 'AKP' ? 'base64url' : 'base58btc')
   }
 
   /**
-   * Create a jwk instance based on a Base58 multibase encoded multicodec key
+   * Create a JWK instance based on a multibase-encoded multicodec key
    */
   public static fromFingerprint(fingerprint: string) {
-    const { data } = MultiBaseEncoder.decode(fingerprint)
+    const { data, baseName } = MultiBaseEncoder.decode(fingerprint)
     const [code, byteLength] = VarintEncoder.decode(data)
     const publicKey = data.slice(byteLength)
 
-    const PublicJwkClass = SupportedPublicJwks.find((JwkClass) => JwkClass.multicodecPrefix === code)
+    if (AkpPublicJwk.supportsMulticodecPrefix(code)) {
+      if (baseName !== 'base64url') {
+        throw new KeyManagementError(`Unsupported multibase '${fingerprint[0]}' for AKP multicodec public key`)
+      }
+
+      return PublicJwk.fromPublicJwk(AkpPublicJwk.fromMulticodecPrefix(code, publicKey).jwk)
+    }
+
+    if (fingerprint[0] !== 'z') {
+      throw new KeyManagementError(
+        `Unsupported multibase '${fingerprint[0]}' for multicodec public key with prefix '${code}'`
+      )
+    }
+
+    const PublicJwkClass = SupportedPublicJwks.find(
+      (JwkClass) => JwkClass.multicodecPrefix !== undefined && JwkClass.multicodecPrefix === code
+    )
     if (!PublicJwkClass) {
       throw new KeyManagementError(`Unsupported multicodec public key with prefix '${code}'`)
     }
